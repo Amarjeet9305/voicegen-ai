@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis AI - Voice Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <div id="particles-js" class="particles-container"></div>
+    
+    <div class="app-layout">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <div class="logo">
+                <span class="pulsar"></span>
+                <h1>AI Voice Assistant</h1>
+            </div>
+            <div class="top-right">
+                <button id="theme-toggle" class="icon-toggle-btn">
+                    <svg class="sun" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+                    <svg class="moon" viewBox="0 0 24 24" width="20" height="20" style="display:none;"><path fill="currentColor" d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 7.26 7.003 7.003 0 01-7.76-7.76 5.389 5.389 0 017.26-4.4c-.44-.06-.9-.1-1.36-.1z"/></svg>
+                </button>
+            </div>
+        </nav>
+
+        <div class="main-viewport">
+            <!-- Sidebar History -->
+            <aside class="side-panel">
+                <div class="panel-header">History</div>
+                <div id="chat-history" class="chat-history">
+                    <!-- Messages appear here -->
+                </div>
+            </aside>
+
+            <!-- Center Content -->
+            <main class="core-interface">
+                <header class="hero-section">
+                    <p class="subtitle">Talk. Ask. Explore.</p>
+                </header>
+
+                <div class="ai-orb-container">
+                    <div class="orb-ring"></div>
+                    <div class="orb-ring"></div>
+                    <div id="ai-orb" class="ai-orb">
+                        <div class="inner-glow"></div>
+                        <button id="mic-trigger" class="mic-trigger">
+                            <svg viewBox="0 0 24 24" width="48" height="48">
+                                <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="status-indicator">
+                    <span id="ai-status" class="status-text">Standby</span>
+                    <div id="waveform" class="waveform">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+
+                <div class="live-transcription">
+                    <p id="transcript-display"></p>
+                    <div id="response-display"></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Action Bar -->
+        <footer class="action-bar">
+            <div class="pills-container">
+                <button id="talk-pill" class="pill-btn neon-purple">
+                    <span class="icon">🎤</span> Talk
+                </button>
+                <button class="pill-btn neon-blue">
+                    <span class="icon">📷</span> Webcam
+                </button>
+                <button class="pill-btn neon-cyan">
+                    <span class="icon">🖥️</span> Share Screen
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Particles.js for background effect -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
