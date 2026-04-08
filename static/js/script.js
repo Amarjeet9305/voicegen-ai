@@ -7,46 +7,113 @@ const responseDisplay = document.getElementById('response-display');
 const chatHistory = document.getElementById('chat-history');
 const themeToggle = document.getElementById('theme-toggle');
 const appBody = document.body;
-const waveform = document.getElementById('waveform').parentElement; // orb container for context class
+const textInput = document.getElementById('text-input');
+const sendBtn = document.getElementById('send-btn');
 
 // Speech Recognition Init
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
+let isListening = false;
+let finalTranscript = '';
+let restartTimer = null;
 
 if (SpeechRecognition) {
     recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;          // Keep listening until manually stopped
+    recognition.interimResults = true;      // Show words as they're being spoken
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;        // Consider multiple interpretations
 
     recognition.onstart = () => {
+        isListening = true;
+        finalTranscript = '';
         appBody.classList.add('listening-mode');
         appBody.classList.add('active-voice');
         updateStatus("Listening...");
-        transcriptDisplay.innerText = "";
+        transcriptDisplay.innerText = "🎙️ Speak now...";
         responseDisplay.innerText = "";
-        speak("Awaiting your command.");
     };
 
     recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        transcriptDisplay.innerText = `"${transcript}"`;
-        addToHistory("User", transcript);
-        processIntent(transcript);
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+
+        // Show real-time feedback — interim in lighter color, final in bold
+        if (finalTranscript || interimTranscript) {
+            transcriptDisplay.innerHTML =
+                `<span class="final-text">${finalTranscript}</span>` +
+                `<span class="interim-text">${interimTranscript}</span>`;
+        }
     };
 
     recognition.onend = () => {
         appBody.classList.remove('listening-mode');
         appBody.classList.remove('active-voice');
-        if (statusText.innerText === "Listening...") {
+
+        // Process the final transcript if we have one
+        const trimmed = finalTranscript.trim();
+        if (trimmed) {
+            addToHistory("You", trimmed);
+            processIntent(trimmed);
+        } else if (isListening) {
+            // Recognition ended unexpectedly with no result — auto-restart
+            updateStatus("Didn't catch that — retrying...");
+            restartTimer = setTimeout(() => {
+                try { recognition.start(); } catch (e) { /* already started */ }
+            }, 300);
+        }
+
+        if (!isListening) {
             updateStatus("Standby");
         }
     };
 
     recognition.onerror = (event) => {
-        updateStatus("Error");
         console.error("Speech Recognition Error:", event.error);
+
+        if (event.error === 'no-speech') {
+            updateStatus("No speech detected — try again");
+            // Auto-restart after no-speech
+            if (isListening) {
+                restartTimer = setTimeout(() => {
+                    try { recognition.start(); } catch (e) {}
+                }, 500);
+            }
+        } else if (event.error === 'audio-capture') {
+            updateStatus("⚠️ No microphone found");
+            stopListening();
+        } else if (event.error === 'not-allowed') {
+            updateStatus("⚠️ Microphone access denied");
+            stopListening();
+        } else if (event.error === 'network') {
+            updateStatus("⚠️ Network error — check connection");
+            stopListening();
+        } else if (event.error === 'aborted') {
+            // User stopped — do nothing
+        } else {
+            updateStatus("Error — try again");
+            stopListening();
+        }
     };
+
+    // Handle audio start to confirm mic is working
+    recognition.onaudiostart = () => {
+        updateStatus("🎙️ Listening...");
+    };
+
+} else {
+    // Browser doesn't support speech recognition
+    if (micTrigger) micTrigger.style.display = 'none';
+    if (talkPill) talkPill.innerHTML = '<span class="icon">⌨️</span> Type Instead';
+    updateStatus("Voice not supported — use text input");
 }
 
 // Event Listeners
@@ -54,12 +121,67 @@ micTrigger.addEventListener('click', toggleMic);
 talkPill.addEventListener('click', toggleMic);
 themeToggle.addEventListener('click', toggleTheme);
 
+// Text input: send on Enter
+if (textInput) {
+    textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && textInput.value.trim()) {
+            sendTextInput();
+        }
+    });
+}
+if (sendBtn) {
+    sendBtn.addEventListener('click', sendTextInput);
+}
+
+function sendTextInput() {
+    const text = textInput.value.trim();
+    if (!text) return;
+    transcriptDisplay.innerText = `"${text}"`;
+    addToHistory("You", text);
+    processIntent(text);
+    textInput.value = '';
+}
+
 function toggleMic() {
-    if (appBody.classList.contains('listening-mode')) {
-        recognition.stop();
-    } else {
-        recognition.start();
+    if (!recognition) {
+        updateStatus("Voice not supported — use text input below");
+        return;
     }
+
+    if (isListening) {
+        stopListening();
+    } else {
+        startListening();
+    }
+}
+
+function startListening() {
+    // Stop any text-to-speech that's playing
+    window.speechSynthesis.cancel();
+    clearTimeout(restartTimer);
+    finalTranscript = '';
+    isListening = true;
+
+    try {
+        recognition.start();
+    } catch (e) {
+        // Already started
+        recognition.stop();
+        setTimeout(() => {
+            try { recognition.start(); } catch (err) {}
+        }, 200);
+    }
+}
+
+function stopListening() {
+    isListening = false;
+    clearTimeout(restartTimer);
+    try {
+        recognition.stop();
+    } catch (e) {}
+    appBody.classList.remove('listening-mode');
+    appBody.classList.remove('active-voice');
+    updateStatus("Standby");
 }
 
 function updateStatus(text) {
@@ -88,7 +210,7 @@ async function processIntent(text) {
         updateStatus("Speaking...");
         displayResponse(data);
         speak(data.message);
-        addToHistory("Jarvis", data.message);
+        addToHistory("AI", data.message);
         
         if (data.action) {
             handleAction(data.action);
@@ -96,6 +218,7 @@ async function processIntent(text) {
     } catch (error) {
         console.error('Error:', error);
         updateStatus("System Offline");
+        responseDisplay.innerText = "Connection error — please try again.";
     }
 }
 
@@ -115,21 +238,33 @@ function handleAction(action) {
 
 function speak(text) {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.1;
+    utterance.rate = 1.0;
     utterance.pitch = 1;
     
+    // Try to pick a better voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+        v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Samantha')
+    );
+    if (preferred) utterance.voice = preferred;
+
     utterance.onstart = () => {
         appBody.classList.add('active-voice');
-        if (statusText.innerText !== "Listening...") updateStatus("Speaking...");
+        if (!isListening) updateStatus("Speaking...");
     };
     
     utterance.onend = () => {
         appBody.classList.remove('active-voice');
-        updateStatus("Standby");
+        if (!isListening) updateStatus("Standby");
     };
 
     window.speechSynthesis.speak(utterance);
 }
+
+// Pre-load voices (some browsers need this)
+window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+};
 
 function toggleTheme() {
     appBody.classList.toggle('dark-theme');
