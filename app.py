@@ -1,28 +1,42 @@
 from flask import Flask, render_template, request, jsonify
 import datetime
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 import string
-
-# Download NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
+import os
 
 app = Flask(__name__)
 
-STOP_WORDS = set(stopwords.words('english'))
+# Simple stop words list (avoids NLTK dependency which fails on Vercel's read-only filesystem)
+STOP_WORDS = {
+    'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're",
+    "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he',
+    'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's",
+    'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which',
+    'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are',
+    'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do',
+    'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because',
+    'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against',
+    'between', 'through', 'during', 'before', 'after', 'above', 'below', 'to',
+    'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again',
+    'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how',
+    'all', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no',
+    'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't',
+    'can', 'will', 'just', 'don', "don't", 'should', "should've", 'now', 'd',
+    'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', "aren't", 'couldn', "couldn't",
+    'didn', "didn't", 'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't",
+    'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't", 'mustn',
+    "mustn't", 'needn', "needn't", 'shan', "shan't", 'shouldn', "shouldn't",
+    'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"
+}
 
 def preprocess_text(text):
-    """Tokenize and remove stop words / punctuation."""
-    tokens = word_tokenize(text.lower())
-    filtered_tokens = [w for w in tokens if w not in STOP_WORDS and w not in string.punctuation]
+    """Tokenize and remove stop words / punctuation (no NLTK needed)."""
+    # Simple whitespace + punctuation tokenizer
+    text = text.lower()
+    # Remove punctuation from text for tokenization
+    translator = str.maketrans('', '', string.punctuation)
+    cleaned = text.translate(translator)
+    tokens = cleaned.split()
+    filtered_tokens = [w for w in tokens if w not in STOP_WORDS]
     return filtered_tokens
 
 @app.route('/')
